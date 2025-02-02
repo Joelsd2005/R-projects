@@ -1,0 +1,49 @@
+# Apply labels to the dataset
+sample <- apply_labels(sample,
+                       Region = "Region name",
+                       House_price = "The average price of all types of property (thousands £)",
+                       Working_population = "Population aged 16 and older (thousands)",
+                       Employment_rate = "Percentage of the population aged 16-64 that is currently employed (%)",
+                       Claimant_count = "Percentage claiming Jobseeker’s Allowance or out-of-work Universal Credit (%)",
+                       Jobs_density = "Percentage of jobs relative to the population aged 16-64 (%)"
+)
+
+# Generate summary statistics for the dataset
+summary(sample)
+
+# Create histograms to visualize the distribution of key variables
+hist(sample$House_price, main = "Histogram for house prices", xlab = "House Price (in thousands £)")
+
+hist(sample$Working_population, main = "Histogram for Working population", xlab = "Working Population (in thousands)")
+
+hist(sample$Employment_rate, main = "Histogram for Employment rate", xlab = "Employment Rate (%)")
+
+# Scatter plot to analyze the relationship between house prices and working population
+plot(sample$House_price ~ sample$Working_population, 
+     main = "Relationship between house price and working population", 
+     xlab = "Working population (thousands)", 
+     ylab = "House price (thousands £)")
+
+# Fit a linear regression model: House price as a function of working population
+housepricefit <- lm(House_price ~ Working_population, data = sample)
+
+# Add the regression line to the scatter plot
+abline(housepricefit)
+
+# Scatter plot to analyze the relationship between house prices and employment rate
+plot(sample$House_price ~ sample$Employment_rate, 
+     main = "Relationship between house price and employment rate", 
+     xlab = "Employment rate (%)", 
+     ylab = "House price (thousands £)")
+
+# Fit a linear regression model: House price as a function of employment rate
+housepricefit2 <- lm(House_price ~ Employment_rate, data = sample)
+
+# Add the regression line to the scatter plot
+abline(housepricefit2)
+
+# Calculate and print correlation between house prices and working population
+cor(sample$House_price, sample$Working_population)
+
+# Calculate and print correlation between house prices and employment rate
+cor(sample$House_price, sample$Employment_rate)
