@@ -1,0 +1,42 @@
+# Load dataset
+data("ceosal1")
+
+# View dataset structure
+View(ceosal1)
+
+# Summary statistics of the dataset
+summary(ceosal1)
+
+# Scatter plots to visualize relationships
+plot(ceosal1$salary, ceosal1$sales, main = "Salary vs Sales", xlab = "Salary", ylab = "Sales")
+plot(ceosal1$sales ~ ceosal1$salary, main = "Sales vs Salary", xlab = "Salary", ylab = "Sales")
+plot(ceosal1$salary ~ ceosal1$sales, main = "Salary vs Sales", xlab = "Sales", ylab = "Salary")
+
+# Fit an OLS regression model with salary as dependent variable and sales, roe, ros, and finance as predictors
+olsmodel1 <- lm(salary ~ sales + roe + ros + finance, data = ceosal1)
+summary(olsmodel1)  # Display summary of the regression model
+
+# Fit a log-transformed regression model for salary and sales
+olsmodel2 <- lm(log(salary) ~ log(sales) + roe + ros + finance, data = ceosal1)
+summary(olsmodel2)  # Display summary of the log-transformed regression model
+
+# Generate a regression results table using stargazer
+library("stargazer") 
+stargazer(olsmodel1, olsmodel2, type = "text", title = "Regression Results")
+
+# Perform a t-test for significance of a coefficient
+c <- 0  # Null hypothesis value for coefficient
+test_alpha <- 0.10  # Significance level
+b <- 0.0003150  # Estimated coefficient value
+seb <- 0.0005373  # Standard error of the coefficient
+df <- df.residual(olsmodel2)  # Degrees of freedom for t-test
+
+t_value <- (b - c) / seb  # Calculate t-value
+t_critical <- qt(1 - test_alpha, df)  # Compute critical t-value
+
+# Fit a multiple regression model with additional predictors
+olsmodel3 <- lm(log(salary) ~ log(sales) + roe + ros + finance + pcsalary + pcroe, data = ceosal1) 
+summary(olsmodel3)  # Display summary of the updated regression model
+
+# Generate regression results table including the third model
+stargazer(olsmodel1, olsmodel2, olsmodel3, type = "text", title = "Regression Results for All Models")
