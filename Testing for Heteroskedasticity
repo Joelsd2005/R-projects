@@ -1,0 +1,69 @@
+# Load dataset
+data("hprice1")
+
+# View dataset structure
+View(hprice1)
+
+# Summary statistics of the dataset
+summary(hprice1)
+summary(hprice1$price)  # Summary statistics for house price variable
+
+# Fit an OLS regression model with price as dependent variable and lotsize, sqrft, and bdrms as predictors
+olsprice1 <- lm(price ~ lotsize + sqrft + bdrms, data = hprice1)
+summary(olsprice1)  # Display summary of the regression model
+
+# Extract residuals and fitted values from the model
+res <- residuals(olsprice1)
+yhat <- fitted(olsprice1)
+
+# Plot residuals against square footage
+plot(hprice1$sqrft, res, xlab = "Area in square feet", ylab = "Residuals")
+
+# Plot residuals against fitted values
+plot(yhat, res, xlab = "Fitted values", ylab = "Residuals")
+
+# Squared residuals for heteroskedasticity test
+res2 <- res^2
+residuals <- lm(res2 ~ lotsize + sqrft + bdrms, data = hprice1)
+summary(residuals)
+
+# Perform Breusch-Pagan test manually
+alpha <- 0.05  # Critical level
+N <- nobs(residuals)  # Number of observations
+gresiduals <- glance(residuals)
+S <- gresiduals$df  # Number of Betas in model
+chisqcr <- qchisq(1 - alpha, S - 1)  # Critical chi-square value
+Rsqres <- gresiduals$r.squared
+chisq <- N * Rsqres  # Compute chi-square test statistic
+
+# Perform Breusch-Pagan test using built-in function
+bptest(olsprice1)
+
+# Fit White’s heteroskedasticity test model with additional interaction and squared terms
+residuals_white <- lm(res2 ~ lotsize + sqrft + bdrms + I(lotsize^2) + I(sqrft^2) + I(bdrms^2) + I(lotsize * sqrft) + I(lotsize * bdrms) + I(sqrft * bdrms), data = hprice1)
+summary(residuals_white)
+
+# Perform White test manually
+alpha_w <- 0.05  # Critical level
+N_w <- nobs(residuals_white)  # Number of observations
+gresiduals_white <- glance(residuals_white)
+S_w <- gresiduals_white$df  # Number of Betas in model
+chisqcr_w <- qchisq(1 - alpha_w, S_w - 1)  # Critical chi-square value
+Rsqres_w <- gresiduals_white$r.squared
+chisq_w <- N_w * Rsqres_w  # Compute chi-square test statistic
+pval_w <- 1 - pchisq(chisq_w, S_w - 1)  # Compute p-value
+
+# Perform White test using built-in function
+bptest(olsprice1, ~ lotsize + sqrft + bdrms + I(lotsize^2) + I(sqrft^2) + I(bdrms^2) + I(lotsize * sqrft) + I(lotsize * bdrms) + I(sqrft * bdrms), data = hprice1)
+
+# Compute robust standard errors using HC1 method
+robust_se <- hccm(olsprice1, type = "hc1") 
+coeftest(olsprice1)  # Display standard coefficient test
+coeftest(olsprice1, vcov. = robust_se)  # Display coefficient test with robust standard errors
+
+# Fit log-transformed regression model
+logprice1 <- lm(lprice ~ llotsize + lsqrft + bdrms, data = hprice1)
+summary(logprice1)
+
+# Perform Breusch-Pagan test on log-transformed model
+bptest(logprice1)
