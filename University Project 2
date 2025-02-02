@@ -1,0 +1,62 @@
+# Fitting simple linear model
+housesfit <- lm(House_price ~ Working_population, data = Coursework2)
+housesfit
+
+# Summary of the simple linear model
+summary(housesfit)
+options(scipen = 10)  # Prevents scientific notation for better readability
+
+# Equation for model 1 - Simple linear model
+# House_price = 225.9137 + (0.1038 * Working_population)
+
+# Fitting multiple regression model 1
+housesfit2 <- lm(House_price ~ Working_population + Employment_rate + Claimant_count, data = Coursework2)
+
+# Summary of multiple regression model 1
+summary(housesfit2)
+
+# Equation for model 2 - Multiple regression model 1
+# House_price = -303.2375 + (0.1140 * Working_population) + (7.9204 * Employment_rate) - (20.8908 * Claimant_count)
+
+# Adding the squared term for Working population
+Coursework2$Working_population_squared <- Coursework2$Working_population^2
+housesfit3 <- lm(House_price ~ Working_population + Working_population_squared + Employment_rate + Claimant_count, data = Coursework2)
+
+# Summary of multiple regression model 2
+summary(housesfit3)
+
+# Prevents R from displaying numbers in scientific notation
+options(scipen = 5)
+
+# Summary of multiple regression model 2
+summary(housesfit3)
+
+# Equation for model 3 - Multiple regression model with squared term
+# House_price = -303.1081 + (0.0979 * Working_population) + (0.000008 * Working_population_squared) + (7.9537 * Employment_rate) - (21.0232 * Claimant_count)
+
+# Log-transform House_price and Working_population
+Coursework2$Log_House_price <- log(Coursework2$House_price)
+Coursework2$Log_Working_population <- log(Coursework2$Working_population)
+
+# Fitting log-transformed model
+housesfit4 <- lm(Log_House_price ~ Log_Working_population + Employment_rate + Claimant_count, data = Coursework2)
+
+# Summary of log-transformed regression model
+summary(housesfit4)
+
+# Equation for model 4 - Log-transformed regression model
+# House_price = 2.8854 + (0.1385 * log(Working_population)) + (0.0291 * Employment_rate) - (0.0875 * Claimant_count)
+
+# Combine all models into a single table
+stargazer(housesfit, housesfit2, housesfit3, housesfit4, 
+          type = "text",  # Text output for console
+          title = "Table 1 - Regression Results for Models 1-4",  # Add a title
+          dep.var.labels = "House Price",  # Dependent variable label
+          covariate.labels = c("Working Population", 
+                               "Working Population Squared", # For model 3
+                               "Log(Working Population)", # For model 4
+                               "Employment Rate",  
+                               "Claimant Count"),    
+          digits = 4, # Set decimal places to 4
+          align = TRUE,  # Align columns for readability
+          out = "Regression_results.txt")
