@@ -1,0 +1,70 @@
+# Load necessary libraries
+library(wooldridge)  # For econometrics dataset
+library(car)         # For hypothesis testing and robust standard errors
+
+# Load the rdchem dataset from the Wooldridge package
+data(rdchem)
+
+# Display summary statistics of the dataset
+summary(rdchem)
+
+# Prevent scientific notation in outputs
+options(scipen=90000)
+
+
+# Linear Regression Model - All Data
+rd.all = lm(rdintens ~ sales + profmarg, data = rdchem)  
+summary(rd.all)  # View model summary
+
+
+# Scatter Plots: Visualizing Relationships
+plot(rdchem$sales, rdchem$rdintens, 
+     xlab = "Sales (in million USD)", 
+     ylab = "R&D Intensity", 
+     main = "Scatter Plot of Sales vs R&D Intensity")
+
+plot(rdchem$profmarg, rdchem$rdintens, 
+     xlab = "Profit Margins", 
+     ylab = "R&D Intensity", 
+     main = "Scatter Plot of Profit Margins vs R&D Intensity")
+
+
+# Linear Regression Model - Excluding Outliers
+# Excluding observations where sales >= 20000
+rd.no = lm(rdintens ~ sales + profmarg, data = subset(rdchem, sales < 20000))  
+summary(rd.no)  # View model summary
+
+# RESET Test for Functional Form (Model without Sales Squared)
+rdchem$rdhat <- fitted(rd.all)   # Fitted values from the model
+rdchem$rdhat2 <- rdchem$rdhat^2  # Squared fitted values
+rdchem$rdhat3 <- rdchem$rdhat^3  # Cubed fitted values
+
+# Augmented model for RESET test
+resettest = lm(rdintens ~ sales + profmarg + rdhat2 + rdhat3, 
+               data = rdchem, singular.ok = TRUE)
+summary(resettest)  # View RESET test model summary
+
+# Perform hypothesis test to check if rdhat2 and rdhat3 are jointly zero
+lht(resettest, c("rdhat2 = 0", "rdhat3 = 0"), singular.ok = TRUE)
+
+
+# Quadratic Model (Adding Sales Squared)
+rd.qd = lm(rdintens ~ sales + I(sales^2) + profmarg, data = rdchem)
+summary(rd.qd)  # View quadratic model summary
+
+# Prevent scientific notation in outputs again
+options(scipen=90000)
+
+# RESET Test for Functional Form (Quadratic Model)
+
+rdchem$rdhat1 <- fitted(rd.qd)   # Fitted values from quadratic model
+rdchem$rdhat12 <- rdchem$rdhat1^2  # Squared fitted values
+rdchem$rdhat13 <- rdchem$rdhat1^3  # Cubed fitted values
+
+# Augmented model for RESET test on quadratic specification
+resettest1 = lm(rdintens ~ sales + I(sales^2) + profmarg + rdhat12 + rdhat13, 
+                data = rdchem, singular.ok = TRUE)
+summary(resettest1)  # View RESET test model summary
+
+# Perform hypothesis test to check if rdhat12 and rdhat13 are jointly zero
+lht(resettest1, c("rdhat12 = 0", "rdhat13 = 0"), singular.ok = TRUE)
