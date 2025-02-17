@@ -1,0 +1,78 @@
+# Load required libraries
+library(readr) 
+library(knitr)
+library(margins) 
+library(broom)
+library(stargazer)
+
+# Read Titanic dataset
+titanic <- read_csv("titanic.csv", show_col_types = FALSE) 
+summary(titanic)  # Summary of dataset
+
+# Calculate survival rates overall and by groups
+mean(titanic$Survived)  # Overall survival rate
+mean(titanic$Survived[titanic$Pclass==1])  # Survival rate in 1st class
+mean(titanic$Survived[titanic$Pclass==2])  # Survival rate in 2nd class
+mean(titanic$Survived[titanic$Pclass==3])  # Survival rate in 3rd class
+mean(titanic$Survived[titanic$Sex=="male"])  # Survival rate for males
+mean(titanic$Survived[titanic$Sex=="female"])  # Survival rate for females
+
+# Disable scientific notation in output
+options(scipen=999)
+
+# Linear Probability Model (LPM)
+lpm_titanic = lm(Survived ~ Sex + Age + Pclass + Fare, data=titanic)
+summary(lpm_titanic)  # Summary of LPM
+kable(glance(lpm_titanic))  # Model performance metrics
+kable(tidy(lpm_titanic), digits=3, caption="Linear probability model of Survivals")
+
+# Logistic Regression Model (Logit)
+logit_titanic = glm(Survived ~ Sex + Age + Pclass + Fare, family=binomial(link="logit"), data=titanic)
+summary(logit_titanic)  # Summary of Logit model
+logit_titanic_margins <- margins(logit_titanic)  # Marginal effects
+summary(logit_titanic_margins)
+kable(tidy(logit_titanic_margins), digits=3, caption="Logit model of Survivals")
+
+# Probit Regression Model
+probit_titanic = glm(Survived ~ Sex + Age + Pclass + Fare, family=binomial(link="probit"), data=titanic)
+summary(probit_titanic)  # Summary of Probit model
+probit_titanic_margins <- margins(probit_titanic)  # Marginal effects
+summary(probit_titanic_margins)
+
+# Compare models using stargazer
+stargazer(lpm_titanic, probit_titanic, logit_titanic, type="text")
+stargazer(lpm_titanic, probit_titanic_margins, logit_titanic_margins, type="text")
+
+# Compute model predictions
+titanic$lpmhat <- fitted(lpm_titanic)
+titanic$logithat <- fitted(logit_titanic)
+titanic$probithat <- fitted(probit_titanic)
+
+# Compute model accuracy (correct predictions)
+titanic$lpm_correct <- ifelse((titanic$Survived==1 & titanic$lpmhat>=0.5) | (titanic$Survived==0 & titanic$lpmhat<0.5), 1, 0)
+titanic$logit_correct <- ifelse((titanic$Survived==1 & titanic$logithat>=0.5) | (titanic$Survived==0 & titanic$logithat<0.5), 1, 0)
+titanic$probit_correct <- ifelse((titanic$Survived==1 & titanic$probithat>=0.5) | (titanic$Survived==0 & titanic$probithat<0.5), 1, 0)
+
+# Display confusion matrices for model performance
+xtabs(~Survived + lpm_correct, data=titanic)
+xtabs(~Survived + probit_correct, data=titanic)
+xtabs(~Survived + logit_correct, data=titanic)
+
+# Extended LPM with additional family members' presence
+lpm_titanic1 = lm(Survived ~ Sex + Age + Pclass + Fare + Siblings_Spouses + Parents_Children, data=titanic)
+summary(lpm_titanic1)
+
+# Predict survival probability for different classes using Logit Model
+titanic_class1 <- with(titanic, data.frame(Pclass=1, Sex="male", Age=mean(Age), Fare=mean(Fare)))
+titanic_class1$survival_hat <- predict(logit_titanic, newdata=titanic_class1, type="response")
+titanic_class1
+
+titanic_class3 <- with(titanic, data.frame(Pclass=3, Sex="male", Age=mean(Age), Fare=mean(Fare)))
+titanic_class3$survival_hat <- predict(logit_titanic, newdata=titanic_class3, type="response")
+titanic_class3
+
+# Predict survival probability using Probit Model
+titanic_class1$survival_hat1 <- predict(probit_titanic, newdata=titanic_class1, type="response")
+titanic_class1
+titanic_class3$survival_hat1 <- predict(probit_titanic, newdata=titanic_class3, type="response")
+titanic_class3
