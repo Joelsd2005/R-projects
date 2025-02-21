@@ -1,0 +1,62 @@
+# Load necessary libraries
+library(zoo)
+library(dynlm) # For fitting time series models
+library(lmtest) # For statistical tests like coeftest() and bptest()
+library(sandwich) # For Newey-West HAC robust standard errors
+library(stargazer) # For producing well-formatted tables
+library(wooldridge) # To load pre-installed datasets
+
+# Load the traffic2 dataset
+data(traffic2)
+
+# Display summary statistics of the dataset
+summary(traffic2)
+
+# Convert 'traffic2' into a time series object with monthly frequency (Jan 1981 - Dec 1989)
+traffic2.ts <- ts(traffic2, frequency=12, start=c(1981,1), end=c(1989,12))
+
+# Fit a linear model with only time trend and monthly dummies
+acc.1 <- lm(ltotacc ~ t + feb + mar + apr + may + jun + jul + aug + sep + oct + nov + dec, 
+            data = traffic2.ts)
+summary(acc.1) # Display summary of the model
+
+# Plot total accidents over time
+plot(traffic2$ltotacc, main = "Statewide Total Accidents Over Time", ylab = "Total Accidents", xlab = "Index")
+plot(traffic2$year, traffic2$ltotacc, xlab = "Year", ylab= "Statewide Total Accidents", main = "Total Accidents by Year")
+
+# Fit a multiple linear regression including additional explanatory variables
+acc.2 <- lm(ltotacc ~ wkends + unem + spdlaw + beltlaw + t + feb + mar + apr + may + jun + jul + aug + sep
+            + oct + nov + dec, data = traffic2.ts)
+summary(acc.2) # Display summary of the model
+
+# Fit a dynamic linear model with time trends and seasonal effects
+acc.3 <- dynlm(ltotacc ~ wkends + unem + spdlaw + beltlaw + trend(year) + season(t), 
+               data = traffic2.ts)
+summary(acc.3) # Display summary of the model
+
+# Fit another dynamic linear model, this time with prcfat (percentage of fatal accidents) as the dependent variable
+acc.4 <- dynlm(prcfat ~ wkends + unem + spdlaw + beltlaw + trend(year) + season(t), 
+               data = traffic2.ts)
+summary(acc.4) # Display summary of the model
+
+# Plot percentage of fatal accidents over time
+plot(traffic2$prcfat, main = "Percentage of Fatal Accidents Over Time", ylab = "Fatal Accidents", xlab = "Index")
+
+# Calculate and test residuals for autocorrelation
+residuals <- resid(acc.4) # Extract residuals
+coeftest(dynlm(residuals ~ L(residuals))) # Test for lagged residuals (autocorrelation)
+dwtest(acc.4) # Perform Durbin-Watson test for autocorrelation
+
+# Calculate Newey-West robust standard errors for acc.4 model
+acc.5 <- coeftest(acc.4, vcov. = NeweyWest(acc.4, lag = 4))
+
+# Extract robust standard errors for specific variables
+se_spdlaw <- acc.5["spdlaw", "Std. Error"]
+se_beltlaw <- acc.5["beltlaw", "Std. Error"]
+
+# Print robust standard errors
+cat("Robust standard error for spdlaw:", se_spdlaw, "\n")
+cat("Robust standard error for beltlaw:", se_beltlaw, "\n")
+
+# Display summary tables for all models in a nicely formatted text output
+stargazer(acc.1, acc.2, acc.3, acc.4, acc.5, type="text")
