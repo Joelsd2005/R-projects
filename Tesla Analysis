@@ -1,0 +1,48 @@
+# Working with Non-Stationary Time Series in R
+
+# Load necessary libraries
+library(quantmod)   # Loads financial data from Yahoo! Finance
+library(knitr)      # Formats output into HTML or Word files
+library(tseries)    # For time series data manipulation & stationarity tests
+library(dynlm)      # For estimating dynamic time-series models
+library(forecast)   # For forecasting and ARIMA modeling
+
+# Load Tesla stock prices from Yahoo! Finance (returns an xts object)
+getSymbols("TSLA", from = '2019-01-01', to = "2021-03-01")
+
+# Convert the daily stock price data to weekly values using the mean
+tesla <- apply.weekly(TSLA, mean)  # Compute weekly average prices and volume
+
+# Display summary statistics of the dataset
+summary(tesla)
+
+# Create log-transformed price and volume variables
+tesla$p <- log(tesla$TSLA.Close)  # Log of closing price
+tesla$q <- log(tesla$TSLA.Volume) # Log of trading volume
+
+# Convert dataset into a time series object with weekly frequency
+tesla.ts <- ts(tesla, frequency = 52, start = c(2019, 1)) 
+
+# Plot Tesla's weekly closing price and volume trends
+plot(tesla.ts[, "TSLA.Close"], col = "blue", lwd = 2, 
+     main = "Tesla Weekly Closing Price (2019-2021)", 
+     xlab = "Time", ylab = "Price in USD")
+
+# Fit an autoregressive model (AR(1)) including volume and time trend
+tesla.ar1 <- dynlm(p ~ L(p) + q + trend(tesla.ts), data = tesla.ts)
+summary(tesla.ar1) # Display model summary
+
+# Perform Augmented Dickey-Fuller (ADF) test using a regression model
+tesla.adf <- dynlm(d(p) ~ L(p) + L(d(p)) + trend(tesla.ts), data = tesla.ts)
+summary(tesla.adf) # Display model summary
+
+# Conduct Augmented Dickey-Fuller (ADF) test to check for stationarity
+adf.test(tesla$p, k = 1) # Test for stationarity in log price
+adf.test(tesla$q, k = 1) # Test for stationarity in log volume
+
+# Take the first difference of log price to check for stationarity
+dp <- diff(tesla.ts[, "p"]) # Compute first difference
+plot(dp, main = "First Difference of Log Price", ylab = "Change in Log Price", xlab = "Time")
+
+# Conduct ADF test on the first differenced series
+adf.test(dp, k = 1) 
